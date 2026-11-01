@@ -12,6 +12,35 @@ def flight_score(f: FlightOption, fx: float = 1.0) -> float:
     return f.price + (VALUE_OF_TIME_PER_HOUR * fx) * f.total_duration_min / 60 + (STOP_PENALTY * fx) * f.stops
 
 
+def price_selection(
+    flight: FlightOption,
+    hotel: HotelOption,
+    req: TripRequest,
+    daily_per_person: float,
+    notes: list[str] | None = None,
+) -> Selection:
+    """Calculates pricing and budget status for a given flight and hotel pair."""
+    n, nights = req.travelers, req.nights
+    flight_cost = flight.price * (n if FLIGHT_PRICE_IS_PER_TRAVELER else 1)
+    hotel_cost = hotel.price_per_night * nights * req.rooms
+    daily_total = daily_per_person * n * (nights + 1)
+    total = flight_cost + hotel_cost + daily_total
+
+    sel_notes = list(notes) if notes is not None else []
+    return Selection(
+        flight_id=flight.id,
+        hotel_id=hotel.id,
+        flights_cost=round(flight_cost),
+        hotel_cost=round(hotel_cost),
+        daily_cost=round(daily_total),
+        total=round(total),
+        budget=req.budget,
+        within_budget=(req.budget is None or total <= req.budget),
+        currency=req.currency,
+        notes=sel_notes,
+    )
+
+
 def choose(flights: list[FlightOption], hotels: list[HotelOption], req: TripRequest,
            daily_per_person: float, fx: float = 1.0) -> Selection | None:
     if not flights or not hotels:
@@ -36,10 +65,4 @@ def choose(flights: list[FlightOption], hotels: list[HotelOption], req: TripRequ
             flight, hotel = min(flights, key=lambda f: f.price), min(hotels, key=hotel_cost)
             notes.append("Nothing fits the budget; showing the cheapest flight and hotel combination.")
 
-    fc, hc = flight_cost(flight), hotel_cost(hotel)
-    total = fc + hc + daily_total
-    return Selection(
-        flight_id=flight.id, hotel_id=hotel.id, flights_cost=round(fc), hotel_cost=round(hc),
-        daily_cost=round(daily_total), total=round(total), budget=req.budget,
-        within_budget=(req.budget is None or total <= req.budget), currency=req.currency, notes=notes,
-    )
+    return price_selection(flight, hotel, req, daily_per_person, notes=notes)

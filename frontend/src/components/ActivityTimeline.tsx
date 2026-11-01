@@ -36,6 +36,9 @@ export default function ActivityTimeline({ steps, mode, destination }: { steps: 
   if (mode === 'revise') {
     return (
       <ol className="timeline" aria-label="Progress">
+        {steps.optimize.status !== 'idle' && (
+          <Row id="optimize" steps={steps}>Re-pricing your trip</Row>
+        )}
         <Row id="compose" steps={steps} last>Revising your itinerary</Row>
       </ol>
     );

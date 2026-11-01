@@ -17,7 +17,7 @@ from langgraph.types import interrupt
 
 from .config import settings
 from .llm import structured_llm
-from .optimizer import choose
+from .optimizer import choose, price_selection
 from .schemas import (QUESTIONS, FlightOption, HotelOption, TripPlan, TripRequest)
 from .tools.currency import get_rate
 from .tools.flights import search_flights
@@ -243,10 +243,61 @@ async def compose_node(state: TravelState):
 
 
 def approve(state: TravelState):
-    """Human-in-the-loop: the user approves the plan or sends feedback for a revision."""
+    """Human-in-the-loop: the user approves the plan, changes flight/stay selection, or sends feedback."""
     decision = interrupt({"type": "approval", "plan": state["plan"], "selection": state.get("selection")})
     if isinstance(decision, dict) and decision.get("approved"):
         return {"feedback": None}
+
+    # Check for flight or hotel selection
+    flight_id = None
+    hotel_id = None
+    custom_feedback = None
+    if isinstance(decision, dict):
+        flight_id = decision.get("flight_id") or decision.get("select_flight")
+        hotel_id = decision.get("hotel_id") or decision.get("select_hotel")
+        if not flight_id and not hotel_id and isinstance(decision.get("select"), dict):
+            flight_id = decision["select"].get("flight_id")
+            hotel_id = decision["select"].get("hotel_id")
+        custom_feedback = decision.get("feedback")
+
+    if flight_id or hotel_id:
+        cur_sel = state.get("selection") or {}
+        target_fid = flight_id or cur_sel.get("flight_id")
+        target_hid = hotel_id or cur_sel.get("hotel_id")
+
+        flights = {f["id"]: FlightOption(**f) for f in state.get("flights", [])}
+        hotels = {h["id"]: HotelOption(**h) for h in state.get("hotels", [])}
+        f_obj = flights.get(target_fid)
+        h_obj = hotels.get(target_hid)
+
+        if f_obj and h_obj:
+            req = _req(state)
+            fx = state.get("fx", 1.0)
+            daily_spend = settings.daily_spend_usd_per_person * fx
+
+            notes = []
+            changes = []
+            if flight_id and flight_id != cur_sel.get("flight_id"):
+                changes.append(f"flight to {f_obj.airline} ({f_obj.price:,.0f} {f_obj.currency})")
+                notes.append(f"Traveler selected {f_obj.airline} flight.")
+            if hotel_id and hotel_id != cur_sel.get("hotel_id"):
+                changes.append(f"stay to {h_obj.name} ({h_obj.price_per_night:,.0f} {h_obj.currency}/night)")
+                notes.append(f"Traveler selected {h_obj.name}.")
+
+            new_sel = price_selection(f_obj, h_obj, req, daily_spend, notes=notes)
+            emit("optimize", "done", f"re-priced: {new_sel.total:,.0f} {new_sel.currency}" + ("" if new_sel.within_budget else " (over budget)"))
+            warns = [] if new_sel.within_budget else [f"Estimated total exceeds your budget of {new_sel.budget:,.0f} {new_sel.currency}."]
+
+            fb = custom_feedback or (
+                f"The traveler changed their {' and '.join(changes)}. "
+                f"Update the itinerary to reflect this new accommodation base and flight schedule."
+            )
+            return {
+                "selection": new_sel.model_dump(),
+                "feedback": fb,
+                "warnings": warns,
+            }
+
     text = decision.get("feedback") if isinstance(decision, dict) else str(decision)
     return {"feedback": text or "Please improve the plan."}
 

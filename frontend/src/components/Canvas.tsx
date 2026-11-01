@@ -14,11 +14,17 @@ export default function Canvas({
   running,
   theme,
   geoapifyApiKey,
+  onSelectFlight,
+  onSelectHotel,
+  onEmail,
 }: {
   trip: TripData;
   running: boolean;
   theme: Theme;
   geoapifyApiKey?: string | null;
+  onSelectFlight?: (flightId: string) => void;
+  onSelectHotel?: (hotelId: string) => void;
+  onEmail?: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('itinerary');
   const req = trip.request;
@@ -42,7 +48,7 @@ export default function Canvas({
   return (
     <section className="canvas" aria-label="Your trip">
       <div className="canvas__inner">
-        <TripSummary trip={trip} running={running} onPrint={print} onCalendar={() => downloadICS(trip)} />
+        <TripSummary trip={trip} running={running} onPrint={print} onCalendar={() => downloadICS(trip)} onEmail={onEmail} />
 
         <div className="tabs" role="tablist" aria-label="Trip sections">
           {tabs.map((t) => (
@@ -74,13 +80,27 @@ export default function Canvas({
             ))}
           {tab === 'flights' &&
             (trip.flights.length ? (
-              <FlightsList flights={trip.flights} selection={trip.selection} travelers={req?.travelers ?? 1} warnings={trip.warnings} />
+              <FlightsList
+                flights={trip.flights}
+                selection={trip.selection}
+                travelers={req?.travelers ?? 1}
+                warnings={trip.warnings}
+                onSelectFlight={onSelectFlight}
+                disabled={running}
+              />
             ) : (
               <p className="empty">{running ? 'Searching flights…' : 'No flights yet.'}</p>
             ))}
           {tab === 'stays' &&
             (trip.hotels.length ? (
-              <HotelsGrid hotels={trip.hotels} selection={trip.selection} nights={nights} warnings={trip.warnings} />
+              <HotelsGrid
+                hotels={trip.hotels}
+                selection={trip.selection}
+                nights={nights}
+                warnings={trip.warnings}
+                onSelectHotel={onSelectHotel}
+                disabled={running}
+              />
             ) : (
               <p className="empty">{running ? 'Searching stays…' : 'No stays yet.'}</p>
             ))}

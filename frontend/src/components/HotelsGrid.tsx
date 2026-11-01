@@ -1,4 +1,4 @@
-import { Building2, ExternalLink, Star } from 'lucide-react';
+import { Building2, Check, ExternalLink, Star } from 'lucide-react';
 import { money } from '../lib/format';
 import type { HotelOption, Selection } from '../lib/types';
 
@@ -9,11 +9,15 @@ export default function HotelsGrid({
   selection,
   nights,
   warnings = [],
+  onSelectHotel,
+  disabled,
 }: {
   hotels: HotelOption[];
   selection?: Selection | null;
   nights: number;
   warnings?: string[];
+  onSelectHotel?: (hotelId: string) => void;
+  disabled?: boolean;
 }) {
   const sorted = [...hotels].sort((a, b) => Number(b.id === selection?.hotel_id) - Number(a.id === selection?.hotel_id) || (b.rating ?? 0) - (a.rating ?? 0));
   const demo = hotels.some((h) => h.source === 'demo');
@@ -39,10 +43,21 @@ export default function HotelsGrid({
         {sorted.map((h) => {
           const picked = h.id === selection?.hotel_id;
           return (
-            <li key={h.id} className="hotel">
+            <li
+              key={h.id}
+              className={`hotel ${picked ? 'is-picked' : 'is-selectable'}`}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('a, button')) return;
+                if (!picked && !disabled) onSelectHotel?.(h.id);
+              }}
+            >
               <div className="hotel__media" style={{ '--tint': `var(--tint-${(hash(h.name) % 6) + 1})` } as React.CSSProperties}>
                 {h.image ? <img src={h.image} alt="" loading="lazy" /> : <Building2 size={40} strokeWidth={1.4} aria-hidden />}
-                {picked && <span className="badge badge--float">Picked for you</span>}
+                {picked && (
+                  <span className="badge badge--picked badge--float">
+                    <Check size={12} aria-hidden /> Picked for you
+                  </span>
+                )}
               </div>
               <div className="hotel__head">
                 <h3 className="hotel__name">{h.name}</h3>
@@ -55,11 +70,31 @@ export default function HotelsGrid({
                 <strong>{money(h.price_per_night, h.currency)}</strong> night
                 <span>{money(h.price_per_night * nights, h.currency)} for {nights} {nights === 1 ? 'night' : 'nights'}</span>
               </p>
-              {h.link && (
-                <a href={h.link} target="_blank" rel="noreferrer" className="link">
-                  View stay <ExternalLink size={12} aria-hidden />
-                </a>
-              )}
+              <div className="hotel__actions">
+                {picked ? (
+                  <span className="badge badge--selected">
+                    <Check size={12} aria-hidden /> Selected
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--primary"
+                    disabled={disabled}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectHotel?.(h.id);
+                    }}
+                    aria-label={`Select ${h.name}`}
+                  >
+                    Select stay
+                  </button>
+                )}
+                {h.link && (
+                  <a href={h.link} target="_blank" rel="noreferrer" className="link" onClick={(e) => e.stopPropagation()}>
+                    View stay <ExternalLink size={12} aria-hidden />
+                  </a>
+                )}
+              </div>
             </li>
           );
         })}

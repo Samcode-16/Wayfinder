@@ -1,4 +1,4 @@
-import { BedDouble, CalendarPlus, Info, Printer, Plane } from 'lucide-react';
+import { BedDouble, CalendarPlus, Info, Mail, Printer, Plane } from 'lucide-react';
 import { money } from '../lib/format';
 import type { TripData } from '../lib/types';
 
@@ -7,9 +7,10 @@ interface Props {
   running: boolean;
   onPrint: () => void;
   onCalendar: () => void;
+  onEmail?: () => void;
 }
 
-export default function TripSummary({ trip, running, onPrint, onCalendar }: Props) {
+export default function TripSummary({ trip, running, onPrint, onCalendar, onEmail }: Props) {
   const { plan, selection: sel, request: req } = trip;
   const flight = trip.flights.find((f) => f.id === sel?.flight_id);
   const hotel = trip.hotels.find((h) => h.id === sel?.hotel_id);
@@ -28,6 +29,11 @@ export default function TripSummary({ trip, running, onPrint, onCalendar }: Prop
         </div>
         {plan && (
           <div className="summary__actions">
+            {onEmail && (
+              <button className="btn btn--ghost" onClick={onEmail}>
+                <Mail size={16} aria-hidden /> <span className="btn__label">Email itinerary</span>
+              </button>
+            )}
             <button className="btn btn--ghost" onClick={onCalendar}><CalendarPlus size={16} aria-hidden /> <span className="btn__label">Add to calendar</span></button>
             <button className="btn btn--ghost" onClick={onPrint}><Printer size={16} aria-hidden /> <span className="btn__label">Save as PDF</span></button>
           </div>

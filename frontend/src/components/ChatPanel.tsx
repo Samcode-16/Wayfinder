@@ -4,14 +4,16 @@ import type { AgentState } from '../lib/agent';
 import ActivityTimeline from './ActivityTimeline';
 import ApprovalCard from './ApprovalCard';
 import Composer from './Composer';
+import EmailCard from './EmailCard';
 
 interface Props {
   state: AgentState;
   onSubmit: (t: string) => void;
   onApprove: () => void;
+  onSendEmail?: (email: string) => Promise<void>;
 }
 
-export default function ChatPanel({ state, onSubmit, onApprove }: Props) {
+export default function ChatPanel({ state, onSubmit, onApprove, onSendEmail }: Props) {
   const { items, running, interrupt, error, trip } = state;
   const end = useRef<HTMLDivElement>(null);
 
@@ -47,6 +49,10 @@ export default function ChatPanel({ state, onSubmit, onApprove }: Props) {
             case 'approval':
               return idx === lastApproval && interrupt?.type === 'approval' ? (
                 <ApprovalCard key={it.id} onApprove={onApprove} disabled={running} />
+              ) : null;
+            case 'email_prompt':
+              return onSendEmail ? (
+                <EmailCard key={it.id} onSend={onSendEmail} disabled={running} />
               ) : null;
           }
         })}

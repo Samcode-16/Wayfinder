@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.optimizer import choose
+from app.optimizer import choose, price_selection
 from app.schemas import FlightLeg, FlightOption, HotelOption, TripRequest
 
 
@@ -42,3 +42,27 @@ def test_over_budget_falls_back_to_cheapest_and_flags_it():
 
 def test_empty_inputs():
     assert choose([], HOTELS, _req(None), 50) is None
+
+
+def test_price_selection_reprices_on_flight_or_hotel_change():
+    req = _req(1500)
+    # Original choice from optimizer: f1 (price 200, 2 travelers = 400), h2 (120 * 4 nights * 1 room = 480), daily 500 => total 1380
+    sel = choose(FLIGHTS, HOTELS, req, 50)
+    assert sel.flight_id == "f1" and sel.hotel_id == "h2" and sel.total == 1380 and sel.within_budget
+
+    # Re-price with hotel h1 (300 * 4 = 1200), total = 400 + 1200 + 500 = 2100 (exceeds 1500 budget)
+    sel_h1 = price_selection(FLIGHTS[0], HOTELS[0], req, 50, notes=["Selected luxury stay"])
+    assert sel_h1.hotel_id == "h1"
+    assert sel_h1.hotel_cost == 1200
+    assert sel_h1.total == 2100
+    assert not sel_h1.within_budget
+    assert "Selected luxury stay" in sel_h1.notes
+
+    # Re-price with flight f2 (150 * 2 = 300) and hotel h3 (60 * 4 = 240), daily 500 => total 1040
+    sel_f2_h3 = price_selection(FLIGHTS[1], HOTELS[2], req, 50)
+    assert sel_f2_h3.flight_id == "f2"
+    assert sel_f2_h3.hotel_id == "h3"
+    assert sel_f2_h3.flights_cost == 300
+    assert sel_f2_h3.hotel_cost == 240
+    assert sel_f2_h3.total == 1040
+    assert sel_f2_h3.within_budget

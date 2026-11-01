@@ -7,7 +7,7 @@ import TopBar from './components/TopBar';
 import Welcome from './components/Welcome';
 
 export default function App() {
-  const { state, health, healthError, submit, approve, reset } = useTripAgent();
+  const { state, health, healthError, submit, approve, selectFlight, selectHotel, promptEmail, sendEmail, reset } = useTripAgent();
   const { theme, toggle } = useTheme();
   const [view, setView] = useState<'chat' | 'trip'>('chat');
   const started = state.items.length > 0;
@@ -21,8 +21,19 @@ export default function App() {
       ) : (
         <>
           <main className="split" data-view={view}>
-            <ChatPanel state={state} onSubmit={submit} onApprove={approve} />
-            <Canvas trip={state.trip} running={state.running} theme={theme} geoapifyApiKey={health?.geoapify_api_key} />
+            <ChatPanel state={state} onSubmit={submit} onApprove={approve} onSendEmail={sendEmail} />
+            <Canvas
+              trip={state.trip}
+              running={state.running}
+              theme={theme}
+              geoapifyApiKey={health?.geoapify_api_key}
+              onSelectFlight={selectFlight}
+              onSelectHotel={selectHotel}
+              onEmail={() => {
+                setView('chat');
+                promptEmail();
+              }}
+            />
           </main>
           <nav className="mobile-tabs" aria-label="Switch view">
             <button aria-pressed={view === 'chat'} onClick={() => setView('chat')}>Chat</button>

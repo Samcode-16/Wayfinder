@@ -29,3 +29,30 @@ export async function* streamChat(body: ChatBody, signal: AbortSignal): AsyncGen
   if (!r.ok || !r.body) throw new Error(`The server returned ${r.status}. Is the backend running on port 8000?`);
   yield* parseSSE(r.body);
 }
+
+export interface EmailPayload {
+  email: string;
+  thread_id?: string;
+  plan?: unknown;
+  request?: unknown;
+  selection?: unknown;
+  flights?: unknown[];
+  hotels?: unknown[];
+}
+
+export async function sendItineraryEmail(
+  payload: EmailPayload,
+  signal?: AbortSignal
+): Promise<{ ok: boolean; status: string; message: string }> {
+  const r = await fetch('/api/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to send email (${r.status})`);
+  }
+  return r.json();
+}

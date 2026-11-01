@@ -110,7 +110,9 @@ export interface TripPlan {
 
 export type Interrupt =
   | { type: 'clarify'; missing: string[]; questions: string[]; request: TripRequest }
-  | { type: 'approval'; plan: TripPlan; selection: Selection | null };
+  | { type: 'approval'; plan: TripPlan; selection: Selection | null }
+  | { type: 'ask_email'; message: string }
+  | { type: 'email_confirmation'; message: string; email: string };
 
 export interface TripData {
   request?: TripRequest;

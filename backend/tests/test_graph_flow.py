@@ -32,6 +32,50 @@ class FakeLLM:
         return TripPlan(title="Amsterdam", summary="s", days=days, local_currency="EUR")
 
 
+def test_select_flight_and_stay_reprices_and_replans(monkeypatch):
+    monkeypatch.setattr(g, "structured_llm", lambda schema: FakeLLM(schema))
+    graph = g.build_graph(InMemorySaver())
+    cfg = {"configurable": {"thread_id": "t_select"}}
+
+    async def run():
+        # 1) Start trip and answer destination
+        await graph.ainvoke({"messages": [HumanMessage("Trip from Madrid next month")]}, cfg)
+        r2 = await graph.ainvoke(Command(resume="Amsterdam please"), cfg)
+        
+        initial_sel = r2["selection"]
+        flights = r2["flights"]
+        hotels = r2["hotels"]
+        
+        # Choose a different hotel
+        other_hotel = next(h for h in hotels if h["id"] != initial_sel["hotel_id"])
+        r3 = await graph.ainvoke(Command(resume={"hotel_id": other_hotel["id"]}), cfg)
+        
+        # Choose a different flight
+        other_flight = next(f for f in flights if f["id"] != initial_sel["flight_id"])
+        r4 = await graph.ainvoke(Command(resume={"flight_id": other_flight["id"]}), cfg)
+        
+        # Approve the final plan
+        r5 = await graph.ainvoke(Command(resume={"approved": True}), cfg)
+        return initial_sel, other_hotel, other_flight, r3, r4, r5
+
+    initial_sel, other_hotel, other_flight, r3, r4, r5 = asyncio.run(run())
+
+    # Hotel selection updated and re-priced
+    assert r3["selection"]["hotel_id"] == other_hotel["id"]
+    assert r3["selection"]["hotel_cost"] == round(other_hotel["price_per_night"] * 4 * 1)
+    assert r3["__interrupt__"][0].value["type"] == "approval"
+    assert "revised" in r3["plan"]["days"][0]["theme"]
+
+    # Flight selection updated and re-priced
+    assert r4["selection"]["flight_id"] == other_flight["id"]
+    assert r4["selection"]["flights_cost"] == round(other_flight["price"] * 2)
+    assert r4["selection"]["hotel_id"] == other_hotel["id"]  # retained chosen hotel
+    assert r4["__interrupt__"][0].value["type"] == "approval"
+
+    # End
+    assert "__interrupt__" not in r5
+
+
 def test_full_flow(monkeypatch):
     monkeypatch.setattr(g, "structured_llm", lambda schema: FakeLLM(schema))
     graph = g.build_graph(InMemorySaver())

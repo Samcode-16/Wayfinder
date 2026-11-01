@@ -163,11 +163,26 @@ def resolve_currency_for_origin(
 
 
 async def get_rate(base: str, quote: str) -> float:
-    """Latest FX rate from Frankfurter (ECB data, free, no key) with robust fallback."""
+    """Latest FX rate. Uses ExchangeRate-API if configured, falls back to Frankfurter, then approx rates."""
     b, q = (base or "USD").strip().upper(), (quote or "USD").strip().upper()
     if b == q:
         return 1.0
 
+    # 1. ExchangeRate-API platform (if API key is configured)
+    api_key = settings.exchangerate_api_key
+    if api_key:
+        try:
+            url = f"https://v6.exchangerate-api.com/v6/{api_key.strip()}/pair/{b}/{q}"
+            async with httpx.AsyncClient(timeout=settings.http_timeout) as c:
+                r = await c.get(url)
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get("result") == "success" and "conversion_rate" in data:
+                        return float(data["conversion_rate"])
+        except Exception:
+            pass
+
+    # 2. Frankfurter (ECB data, free, no key required)
     try:
         async with httpx.AsyncClient(timeout=settings.http_timeout) as c:
             r = await c.get("https://api.frankfurter.dev/v1/latest", params={"base": b, "symbols": q})
@@ -178,7 +193,7 @@ async def get_rate(base: str, quote: str) -> float:
     except Exception:
         pass
 
-    # Fallback to approximate rates if Frankfurter is down or currency not supported
+    # 3. Fallback to approximate rates if external APIs fail or are unreachable
     if b in APPROX_USD_RATES and q in APPROX_USD_RATES:
         return APPROX_USD_RATES[q] / APPROX_USD_RATES[b]
 

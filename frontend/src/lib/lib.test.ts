@@ -69,6 +69,52 @@ describe('reducer', () => {
     expect(reducer(withData, { type: 'run_start', mode: 'full' }).trip.flights).toHaveLength(0);
     expect(reducer(withData, { type: 'run_start', mode: 'revise' }).trip.flights).toHaveLength(1);
   });
+
+  it('updates selection when a different flight or hotel is selected', () => {
+    const withTrip = reducer(started, {
+      type: 'update',
+      data: {
+        flights: [{ id: 'f1', price: 200 } as never, { id: 'f2', price: 150 } as never],
+        hotels: [{ id: 'h1', price_per_night: 300 } as never, { id: 'h2', price_per_night: 120 } as never],
+        selection: {
+          flight_id: 'f1',
+          hotel_id: 'h1',
+          flights_cost: 200,
+          hotel_cost: 300,
+          daily_cost: 200,
+          total: 700,
+          within_budget: true,
+          currency: 'EUR',
+          notes: [],
+        },
+      },
+    });
+
+    const updated = reducer(withTrip, {
+      type: 'update',
+      data: {
+        selection: {
+          ...withTrip.trip.selection,
+          hotel_id: 'h2',
+          hotel_cost: 120,
+          total: 520,
+        },
+      },
+    });
+
+    expect(updated.trip.selection?.hotel_id).toBe('h2');
+    expect(updated.trip.selection?.hotel_cost).toBe(120);
+    expect(updated.trip.selection?.total).toBe(520);
+  });
+
+  it('adds an email prompt item when plan is approved or email is requested', () => {
+    const approved = reducer(started, { type: 'approved' });
+    expect(approved.approved).toBe(true);
+    expect(approved.items.some((i) => i.type === 'email_prompt')).toBe(true);
+
+    const asked = reducer(started, { type: 'prompt_email' });
+    expect(asked.items.some((i) => i.type === 'email_prompt')).toBe(true);
+  });
 });
 
 describe('ics', () => {
