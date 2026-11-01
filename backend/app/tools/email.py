@@ -39,7 +39,9 @@ def generate_itinerary_text(trip_data: dict) -> str:
 
     if flight:
         stops = "Nonstop" if flight.get("stops") == 0 else f"{flight.get('stops')} stops"
-        lines.append(f"\nFLIGHT: {flight.get('airline')} ({stops}) - {flight.get('price'):,.0f} {flight.get('currency')}")
+        travelers_count = req.get("travelers", 1)
+        flight_desc = f"total for {travelers_count} travelers" if travelers_count > 1 else "round trip"
+        lines.append(f"\nFLIGHT: {flight.get('airline')} ({stops}) - {flight.get('price'):,.0f} {flight.get('currency')} ({flight_desc})")
 
     if hotel:
         lines.append(f"HOTEL: {hotel.get('name')} - {hotel.get('price_per_night'):,.0f} {hotel.get('currency')}/night")
@@ -124,11 +126,13 @@ def generate_itinerary_html(trip_data: dict) -> str:
     flight_html = ""
     if flight:
         stops_text = "Nonstop" if flight.get("stops") == 0 else f"{flight.get('stops')} stops"
+        travelers_count = req.get("travelers", 1)
+        flight_desc = f"total for {travelers_count} travelers" if travelers_count > 1 else "round trip"
         flight_html = f"""
         <div style="background: #fdf2f4; border: 1px solid #fed7df; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
           <div style="font-size: 12px; font-weight: bold; color: #d6284a;">✈️ SELECTED FLIGHT</div>
           <div style="font-size: 16px; font-weight: bold; color: #111; margin-top: 2px;">{escape(flight.get('airline', 'Flight'))}</div>
-          <div style="font-size: 13px; color: #555;">{stops_text} · {flight.get('price', 0):,.0f} {escape(flight.get('currency', curr))} per traveler</div>
+          <div style="font-size: 13px; color: #555;">{stops_text} · {flight.get('price', 0):,.0f} {escape(flight.get('currency', curr))} ({flight_desc})</div>
         </div>
         """
 

@@ -1,15 +1,17 @@
 """Deterministic budget optimizer: picks the best flight + hotel combination that fits the budget."""
 from .schemas import FlightOption, HotelOption, Selection, TripRequest
 
-# Assumption: Google Flights prices are per traveler for the round trip.
-FLIGHT_PRICE_IS_PER_TRAVELER = True
+# Google Flights and SerpApi return the total round-trip price for all requested travelers (via adults param).
+FLIGHT_PRICE_IS_PER_TRAVELER = False
 # What an hour of travel time is "worth" and the penalty per stop, in USD-ish units, for ranking flights.
 VALUE_OF_TIME_PER_HOUR = 15.0
 STOP_PENALTY = 40.0
 
 
-def flight_score(f: FlightOption, fx: float = 1.0) -> float:
-    return f.price + (VALUE_OF_TIME_PER_HOUR * fx) * f.total_duration_min / 60 + (STOP_PENALTY * fx) * f.stops
+def flight_score(f: FlightOption, fx: float = 1.0, travelers: int = 1) -> float:
+    # Normalize price per traveler when evaluating time & stop penalties
+    price_per_traveler = f.price / max(1, travelers)
+    return price_per_traveler + (VALUE_OF_TIME_PER_HOUR * fx) * f.total_duration_min / 60 + (STOP_PENALTY * fx) * f.stops
 
 
 def price_selection(
@@ -21,7 +23,7 @@ def price_selection(
 ) -> Selection:
     """Calculates pricing and budget status for a given flight and hotel pair."""
     n, nights = req.travelers, req.nights
-    flight_cost = flight.price * (n if FLIGHT_PRICE_IS_PER_TRAVELER else 1)
+    flight_cost = flight.price if not FLIGHT_PRICE_IS_PER_TRAVELER else flight.price * n
     hotel_cost = hotel.price_per_night * nights * req.rooms
     daily_total = daily_per_person * n * (nights + 1)
     total = flight_cost + hotel_cost + daily_total
@@ -46,12 +48,12 @@ def choose(flights: list[FlightOption], hotels: list[HotelOption], req: TripRequ
     if not flights or not hotels:
         return None
     n, nights = req.travelers, req.nights
-    flight_cost = lambda f: f.price * (n if FLIGHT_PRICE_IS_PER_TRAVELER else 1)  # noqa: E731
+    flight_cost = lambda f: f.price if not FLIGHT_PRICE_IS_PER_TRAVELER else f.price * n  # noqa: E731
     hotel_cost = lambda h: h.price_per_night * nights * req.rooms  # noqa: E731
     daily_total = daily_per_person * n * (nights + 1)
     notes: list[str] = []
 
-    flight = min(flights, key=lambda f: flight_score(f, fx))
+    flight = min(flights, key=lambda f: flight_score(f, fx, travelers=n))
     ranked = sorted(hotels, key=lambda h: (-(h.rating or 0), h.price_per_night))
     hotel = ranked[0]
 

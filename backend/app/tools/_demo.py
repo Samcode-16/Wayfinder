@@ -40,7 +40,8 @@ def demo_flights(req: TripRequest, fx: float) -> list[FlightOption]:
         ]
         # Direct flights can be costlier than layover flights
         stop_discount = 0.15 * stops
-        price = base_usd * (1 - stop_discount) * (0.9 + 0.25 * rng.random()) * fx
+        # Price is total for all travelers, matching SerpApi Google Flights behavior
+        price = base_usd * req.travelers * (1 - stop_discount) * (0.9 + 0.25 * rng.random()) * fx
         out.append(FlightOption(
             id=f"demo-f{i}", airline=airline, price=round(price), currency=req.currency, stops=stops,
             total_duration_min=dur, legs=legs, source="demo",

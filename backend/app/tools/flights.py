@@ -80,8 +80,9 @@ async def get_nearby_airports(place: str, iata: str | None = None) -> list[Nearb
         return []
 
 
-def google_flights_link(origin: str, destination: str, start_date: str | None, end_date: str | None) -> str:
-    q = f"Flights to {destination} from {origin} on {start_date} through {end_date}"
+def google_flights_link(origin: str, destination: str, start_date: str | None, end_date: str | None, travelers: int = 1) -> str:
+    traveler_str = f" for {travelers} adults" if travelers > 1 else ""
+    q = f"Flights to {destination} from {origin} on {start_date} through {end_date}{traveler_str}"
     return f"https://www.google.com/travel/flights?q={quote(q)}"
 
 
@@ -184,7 +185,7 @@ async def _serpapi(
         r = await c.get("https://serpapi.com/search.json", params=params)
         r.raise_for_status()
         data = r.json()
-    link = google_flights_link(dep_text, arr_text, req.start_date, req.end_date)
+    link = google_flights_link(dep_text, arr_text, req.start_date, req.end_date, req.travelers)
     raw_flights = (data.get("best_flights") or []) + (data.get("other_flights") or [])
     out: list[FlightOption] = []
     for i, f in enumerate(raw_flights):
@@ -235,7 +236,7 @@ async def search_flights(req: TripRequest, fx: float = 1.0) -> tuple[list[Flight
     if not settings.serpapi_api_key:
         warnings.append("Flights are demo data (set SERPAPI_API_KEY for live Google Flights prices).")
         options = demo_flights(req, fx)
-        link = google_flights_link(req.origin or "", req.destination or "", req.start_date, req.end_date)
+        link = google_flights_link(req.origin or "", req.destination or "", req.start_date, req.end_date, req.travelers)
         for o in options:
             o.link = link
         return options, warnings
@@ -248,7 +249,7 @@ async def search_flights(req: TripRequest, fx: float = 1.0) -> tuple[list[Flight
             missing.append(f"destination airport code for '{req.destination or 'destination'}'")
         warnings.append(f"Could not determine {' and '.join(missing)}; showing demo flights.")
         options = demo_flights(req, fx)
-        link = google_flights_link(req.origin or "", req.destination or "", req.start_date, req.end_date)
+        link = google_flights_link(req.origin or "", req.destination or "", req.start_date, req.end_date, req.travelers)
         for o in options:
             o.link = link
         return options, warnings
@@ -333,7 +334,7 @@ async def search_flights(req: TripRequest, fx: float = 1.0) -> tuple[list[Flight
     warnings.append(
         f"No live flights found on Google Flights for {req.origin_iata} → {req.destination_iata} or nearby airports; showing demo flights."
     )
-    link = google_flights_link(req.origin or "", req.destination or "", req.start_date, req.end_date)
+    link = google_flights_link(req.origin or "", req.destination or "", req.start_date, req.end_date, req.travelers)
     options = demo_flights(req, fx)
     for o in options:
         o.link = link

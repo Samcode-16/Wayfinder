@@ -68,7 +68,7 @@ def test_select_flight_and_stay_reprices_and_replans(monkeypatch):
 
     # Flight selection updated and re-priced
     assert r4["selection"]["flight_id"] == other_flight["id"]
-    assert r4["selection"]["flights_cost"] == round(other_flight["price"] * 2)
+    assert r4["selection"]["flights_cost"] == round(other_flight["price"])
     assert r4["selection"]["hotel_id"] == other_hotel["id"]  # retained chosen hotel
     assert r4["__interrupt__"][0].value["type"] == "approval"
 

@@ -72,7 +72,11 @@ export default function FlightsList({
               </div>
               <div className="flight__price">
                 <strong>{money(f.price, f.currency)}</strong>
-                <span>{travelers > 1 ? 'per traveler, round trip' : 'round trip'}</span>
+                <span>
+                  {travelers > 1
+                    ? `total for ${travelers} travelers (${money(Math.round(f.price / travelers), f.currency)}/person)`
+                    : 'round trip'}
+                </span>
                 <div className="flight__action">
                   {picked ? (
                     <span className="badge badge--selected">
