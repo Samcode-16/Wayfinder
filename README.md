@@ -21,6 +21,52 @@ Runs seamlessly on **free-tier LLM providers** (Groq, Google Gemini, Hugging Fac
 
 ---
 
+## 📸 Application Screenshots
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot01.png" alt="Wayfinder Main Interface" width="100%" />
+</p>
+
+<details open>
+<summary><b>View Gallery (Screenshots 02 – 09)</b></summary>
+<br />
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot02.png" alt="Itinerary Overview & Progress" width="100%" />
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot03.png" alt="Interactive Day Plan & Map" width="100%" />
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot04.png" alt="Budget & Selection Breakdown" width="100%" />
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot05.png" alt="Flight Search & Booking Options" width="100%" />
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot06.png" alt="Stay & Hotel Options" width="100%" />
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot07.png" alt="Agent Activity & Timeline" width="100%" />
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot08.png" alt="Approval & Export Actions" width="100%" />
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/screenshot09.png" alt="Full Page Itinerary View" width="100%" />
+</p>
+
+</details>
+
+---
+
 ## 🌟 Key Highlights & Engineering Features
 
 * **Stateful Multi-Agent Orchestration**: Built on a cyclic Directed Acyclic Graph (DAG) using **LangGraph** with checkpoint persistence via **SQLite**, surviving server restarts and page refreshes.
