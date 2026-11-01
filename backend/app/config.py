@@ -35,7 +35,14 @@ class Settings(BaseSettings):
     # Rough food/transport/activities spend, in USD; converted to the trip currency.
     daily_spend_usd_per_person: float = 60.0
 
-    # Optional SMTP configuration for emailing itineraries
+    # HTTPS Email APIs (works on Render free tier over port 443)
+    resend_api_key: str | None = None
+    resend_from: str = "Wayfinder <onboarding@resend.dev>"
+    brevo_api_key: str | None = None
+    brevo_sender_email: str | None = None
+    brevo_sender_name: str = "Wayfinder"
+
+    # Optional SMTP configuration for emailing itineraries (blocked on Render free tier)
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None

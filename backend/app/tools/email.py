@@ -194,8 +194,79 @@ def generate_itinerary_html(trip_data: dict) -> str:
     """
 
 
+async def _send_resend(to_email: str, subject: str, html_body: str, text_body: str, cfg: Settings) -> dict:
+    import httpx
+
+    headers = {
+        "Authorization": f"Bearer {cfg.resend_api_key.strip()}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "from": cfg.resend_from or "Wayfinder <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html_body,
+        "text": text_body,
+    }
+    async with httpx.AsyncClient(timeout=cfg.http_timeout + 5) as client:
+        r = await client.post("https://api.resend.com/emails", headers=headers, json=payload)
+        if r.is_success:
+            return {
+                "ok": True,
+                "status": "sent",
+                "email": to_email,
+                "message": f"Itinerary successfully sent to {to_email} via Resend.",
+            }
+        try:
+            err = r.json().get("message", r.text)
+        except Exception:
+            err = r.text
+        return {
+            "ok": False,
+            "status": "error",
+            "email": to_email,
+            "message": f"Failed to send email via Resend ({r.status_code}): {err}",
+        }
+
+
+async def _send_brevo(to_email: str, subject: str, html_body: str, text_body: str, cfg: Settings) -> dict:
+    import httpx
+
+    headers = {
+        "api-key": cfg.brevo_api_key.strip(),
+        "Content-Type": "application/json",
+    }
+    sender_email = cfg.brevo_sender_email or cfg.smtp_user or "no-reply@wayfinder-travel.ai"
+    payload = {
+        "sender": {"email": sender_email, "name": cfg.brevo_sender_name or "Wayfinder"},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_body,
+        "textContent": text_body,
+    }
+    async with httpx.AsyncClient(timeout=cfg.http_timeout + 5) as client:
+        r = await client.post("https://api.brevo.com/v3/smtp/email", headers=headers, json=payload)
+        if r.is_success:
+            return {
+                "ok": True,
+                "status": "sent",
+                "email": to_email,
+                "message": f"Itinerary successfully sent to {to_email} via Brevo.",
+            }
+        try:
+            err = r.json().get("message", r.text)
+        except Exception:
+            err = r.text
+        return {
+            "ok": False,
+            "status": "error",
+            "email": to_email,
+            "message": f"Failed to send email via Brevo ({r.status_code}): {err}",
+        }
+
+
 async def send_itinerary_email(to_email: str, trip_data: dict) -> dict:
-    """Sends the itinerary to to_email via SMTP if configured, or simulates delivery in demo mode."""
+    """Sends the itinerary to to_email via HTTPS API (Resend/Brevo) or SMTP, or simulates delivery in demo mode."""
     to_email = to_email.strip()
     if not is_valid_email(to_email):
         return {"ok": False, "status": "error", "message": f"'{to_email}' is not a valid email address."}
@@ -209,6 +280,14 @@ async def send_itinerary_email(to_email: str, trip_data: dict) -> dict:
 
     cfg = Settings()
 
+    # 1. Prefer HTTPS API if configured (never blocked on Render Free tier)
+    if cfg.resend_api_key:
+        return await _send_resend(to_email, subject, html_body, text_body, cfg)
+
+    if cfg.brevo_api_key:
+        return await _send_brevo(to_email, subject, html_body, text_body, cfg)
+
+    # 2. Traditional SMTP (works locally, but blocked on Render Free tier)
     if cfg.smtp_host:
         def _send():
             msg = MIMEMultipart("alternative")
@@ -246,6 +325,14 @@ async def send_itinerary_email(to_email: str, trip_data: dict) -> dict:
                     f"Gmail/SMTP server disconnected during authentication for {cfg.smtp_user}. "
                     "Ensure 2-Step Verification is enabled and that you are using a 16-character App Password."
                 ) from e
+            except OSError as e:
+                if "101" in str(e) or "unreachable" in str(e).lower():
+                    raise RuntimeError(
+                        f"Network unreachable connecting to {cfg.smtp_host}:{cfg.smtp_port}. "
+                        "Render Free Tier blocks outbound SMTP ports 25, 465, and 587. "
+                        "To send live emails on Render free tier, configure RESEND_API_KEY in your environment variables to use HTTPS (port 443)."
+                    ) from e
+                raise
             finally:
                 if server is not None:
                     try:
@@ -269,10 +356,10 @@ async def send_itinerary_email(to_email: str, trip_data: dict) -> dict:
                 "message": f"Failed to send email to {to_email}: {e}",
             }
     else:
-        # Demo mode when no SMTP server is configured
+        # Demo mode when no SMTP or HTTPS API is configured
         return {
             "ok": True,
             "status": "demo",
             "email": to_email,
-            "message": f"Itinerary prepared and email simulated for {to_email}. (To send live emails, configure SMTP_HOST in .env)",
+            "message": f"Itinerary prepared and email simulated for {to_email}. (To send live emails on Render free tier, set RESEND_API_KEY in your environment variables)",
         }

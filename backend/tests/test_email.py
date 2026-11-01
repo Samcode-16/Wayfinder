@@ -87,7 +87,7 @@ def test_generate_email_html():
 @pytest.mark.asyncio
 async def test_send_itinerary_email_demo_mode(monkeypatch):
     from app.config import Settings
-    monkeypatch.setattr("app.tools.email.Settings", lambda: Settings(smtp_host=None))
+    monkeypatch.setattr("app.tools.email.Settings", lambda: Settings(smtp_host=None, resend_api_key=None, brevo_api_key=None))
     res = await send_itinerary_email("user@example.com", MOCK_TRIP)
     assert res["ok"] is True
     assert res["status"] == "demo"
@@ -99,3 +99,32 @@ async def test_send_itinerary_email_invalid_address():
     res = await send_itinerary_email("bad-email", MOCK_TRIP)
     assert res["ok"] is False
     assert res["status"] == "error"
+
+
+@pytest.mark.asyncio
+async def test_send_itinerary_email_resend_api(monkeypatch):
+    from app.config import Settings
+    import httpx
+
+    monkeypatch.setattr("app.tools.email.Settings", lambda: Settings(resend_api_key="re_test_123"))
+
+    class MockResponse:
+        is_success = True
+        status_code = 200
+
+        def json(self):
+            return {"id": "msg_123"}
+
+    async def mock_post(self, url, headers=None, json=None):
+        assert "api.resend.com" in url
+        assert "re_test_123" in headers.get("Authorization", "")
+        assert json.get("to") == ["traveler@example.com"]
+        return MockResponse()
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    res = await send_itinerary_email("traveler@example.com", MOCK_TRIP)
+    assert res["ok"] is True
+    assert res["status"] == "sent"
+    assert "Resend" in res["message"]
+
