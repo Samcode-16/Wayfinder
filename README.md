@@ -175,10 +175,8 @@ Visit **`http://localhost:5173`** in your browser.
 | `SERPAPI_API_KEY` | Optional | Live Google Flights and Google Hotels search |
 | `GEOAPIFY_API_KEY` | Optional | Enhanced geocoding and custom map tiles |
 | `EXCHANGERATE_API_KEY`| Optional | Live currency conversion rates from ExchangeRate-API |
-| `SMTP_HOST` | Optional | SMTP host for email delivery (e.g. `smtp.gmail.com`) |
-| `SMTP_PORT` | Optional | SMTP port (Default: `587`) |
-| `SMTP_USER` | Optional | Sender email account |
-| `SMTP_PASSWORD` | Optional | 16-character App Password (for Gmail) |
+| `RESEND_API_KEY` | Optional | Resend API Key for email delivery |
+| `RESEND_FROM` | Optional | Sender email address for Resend |
 | `DB_PATH` | Optional | SQLite checkpoint file path (Default: `travel_agent.sqlite`) |
 
 ---
@@ -226,6 +224,3 @@ npm run typecheck
 
 ---
 
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
