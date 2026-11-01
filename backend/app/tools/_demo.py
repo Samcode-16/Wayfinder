@@ -4,8 +4,16 @@ import random
 
 from ..schemas import FlightLeg, FlightOption, HotelOption, TripRequest
 
-AIRLINES = ["SkyJet", "Aero Nova", "BlueWing", "Horizon Air", "Globe Airways"]
-HUBS = ["DXB", "FRA", "AMS", "IST", "DOH"]
+AIRLINES = [
+    "Air India",
+    "IndiGo",
+    "Air India Express",
+    "Akasa Air",
+    "Emirates",
+    "Qatar Airways",
+    "British Airways",
+]
+HUBS = ["DXB", "FRA", "AMS", "IST", "DOH", "DEL", "BOM"]
 
 
 def _rng(*parts: str) -> random.Random:
@@ -17,11 +25,12 @@ def demo_flights(req: TripRequest, fx: float) -> list[FlightOption]:
     rng = _rng(o, d, req.start_date or "", req.end_date or "")
     base_usd = rng.randint(180, 780)
     out = []
-    for i, stops in enumerate([0, 0, 1, 1, 1, 2]):
-        airline = AIRLINES[(i + rng.randint(0, 4)) % len(AIRLINES)]
+    # Both direct nonstops (stops=0) and layover flights (stops=1, 2)
+    for i, stops in enumerate([1, 1, 2, 0, 0, 0, 1]):
+        airline = AIRLINES[(i + rng.randint(0, len(AIRLINES) - 1)) % len(AIRLINES)]
         hubs = rng.sample(HUBS, stops)
         points = [o, *hubs, d]
-        dur = 120 + rng.randint(0, 420) + stops * 150
+        dur = 120 + rng.randint(0, 300) + stops * 180
         legs = [
             FlightLeg(airline=airline, flight_number=f"{airline[:2].upper()}{rng.randint(100, 999)}",
                       from_airport=points[k], to_airport=points[k + 1],
@@ -29,11 +38,15 @@ def demo_flights(req: TripRequest, fx: float) -> list[FlightOption]:
                       duration_min=dur // (stops + 1))
             for k in range(stops + 1)
         ]
-        price = base_usd * (1 - 0.1 * stops) * (0.9 + 0.25 * rng.random()) * fx
+        # Direct flights can be costlier than layover flights
+        stop_discount = 0.15 * stops
+        price = base_usd * (1 - stop_discount) * (0.9 + 0.25 * rng.random()) * fx
         out.append(FlightOption(
             id=f"demo-f{i}", airline=airline, price=round(price), currency=req.currency, stops=stops,
             total_duration_min=dur, legs=legs, source="demo",
         ))
+    # Optimize to show cheaper flights to costly ones
+    out.sort(key=lambda f: (f.price, f.stops, f.total_duration_min))
     return out
 
 

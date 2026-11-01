@@ -85,6 +85,78 @@ def google_flights_link(origin: str, destination: str, start_date: str | None, e
     return f"https://www.google.com/travel/flights?q={quote(q)}"
 
 
+def curate_flight_options(options: list[FlightOption], target_total: int = 14) -> list[FlightOption]:
+    """Curates flights so cheapest options (both direct and layover) are shown first,
+    while direct flights (even if costlier) are preserved below them.
+    The final list is strictly ordered from cheapest to costliest.
+    """
+    if not options:
+        return []
+
+    # Deduplicate identical flights: (airline, departure_time, price, stops)
+    seen = set()
+    unique_options: list[FlightOption] = []
+    for f in options:
+        dep_time = f.legs[0].departs if f.legs else ""
+        key = (f.airline, dep_time, f.price, f.stops)
+        if key not in seen:
+            seen.add(key)
+            unique_options.append(f)
+
+    directs = [f for f in unique_options if f.stops == 0]
+    layovers = [f for f in unique_options if f.stops > 0]
+
+    directs.sort(key=lambda f: (f.price, f.total_duration_min))
+    layovers.sort(key=lambda f: (f.price, f.total_duration_min))
+
+    from collections import defaultdict
+
+    def _sample_diverse(pool: list[FlightOption], limit: int, max_per_carrier: int = 2) -> list[FlightOption]:
+        counts = defaultdict(int)
+        picked: list[FlightOption] = []
+        overflow: list[FlightOption] = []
+        for f in pool:
+            carrier = f.airline.split(" / ")[0].strip()
+            if counts[carrier] < max_per_carrier:
+                counts[carrier] += 1
+                picked.append(f)
+                if len(picked) >= limit:
+                    break
+            else:
+                overflow.append(f)
+        if len(picked) < limit:
+            for f in overflow:
+                picked.append(f)
+                if len(picked) >= limit:
+                    break
+        return picked
+
+    if not directs:
+        selected = _sample_diverse(layovers, target_total, max_per_carrier=3)
+    elif not layovers:
+        selected = _sample_diverse(directs, target_total, max_per_carrier=3)
+    else:
+        # Both direct and layover options exist:
+        # Guarantee inclusion of cheapest layovers AND direct flights (even if more costly)
+        n_direct = min(len(directs), max(5, target_total // 2))
+        n_layover = min(len(layovers), target_total - n_direct)
+
+        sel_directs = _sample_diverse(directs, n_direct, max_per_carrier=2)
+        sel_layovers = _sample_diverse(layovers, n_layover, max_per_carrier=2)
+
+        combined_ids = {f.id for f in sel_directs + sel_layovers}
+        remaining = [f for f in directs + layovers if f.id not in combined_ids]
+        remaining.sort(key=lambda f: (f.price, f.stops, f.total_duration_min))
+
+        needed = target_total - len(combined_ids)
+        extra = remaining[:needed] if needed > 0 else []
+        selected = sel_directs + sel_layovers + extra
+
+    # Strictly sort from cheaper to costlier
+    selected.sort(key=lambda f: (f.price, f.stops, f.total_duration_min))
+    return selected
+
+
 async def _serpapi(
     req: TripRequest,
     dep_iata: str | None = None,
@@ -113,8 +185,9 @@ async def _serpapi(
         r.raise_for_status()
         data = r.json()
     link = google_flights_link(dep_text, arr_text, req.start_date, req.end_date)
+    raw_flights = (data.get("best_flights") or []) + (data.get("other_flights") or [])
     out: list[FlightOption] = []
-    for i, f in enumerate((data.get("best_flights") or []) + (data.get("other_flights") or [])):
+    for i, f in enumerate(raw_flights):
         legs = [
             FlightLeg(
                 airline=leg.get("airline", "?"),
@@ -129,10 +202,21 @@ async def _serpapi(
         ]
         if not legs or "price" not in f:
             continue
+
+        # Multi-carrier or feeder naming (e.g. Air India Express + Air India)
+        leg_airlines = [leg.airline for leg in legs if leg.airline and leg.airline != "?"]
+        unique_airlines = list(dict.fromkeys(leg_airlines))
+        if not unique_airlines:
+            primary_airline = "?"
+        elif len(unique_airlines) == 1:
+            primary_airline = unique_airlines[0]
+        else:
+            primary_airline = " / ".join(unique_airlines)
+
         out.append(
             FlightOption(
                 id=f"serp-{dep}-{arr}-f{i}",
-                airline=legs[0].airline,
+                airline=primary_airline,
                 airline_logo=f.get("airline_logo"),
                 price=float(f["price"]),
                 currency=req.currency,
@@ -143,7 +227,7 @@ async def _serpapi(
                 source="serpapi",
             )
         )
-    return out[:12]
+    return curate_flight_options(out, target_total=14)
 
 
 async def search_flights(req: TripRequest, fx: float = 1.0) -> tuple[list[FlightOption], list[str]]:

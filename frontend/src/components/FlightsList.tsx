@@ -17,7 +17,8 @@ export default function FlightsList({
   onSelectFlight?: (flightId: string) => void;
   disabled?: boolean;
 }) {
-  const sorted = [...flights].sort((a, b) => Number(b.id === selection?.flight_id) - Number(a.id === selection?.flight_id) || a.price - b.price);
+  // Show cheaper flights to costly ones: sorted strictly by price ascending
+  const sorted = [...flights].sort((a, b) => a.price - b.price);
   const demo = flights.some((f) => f.source === 'demo');
 
   const noteMessage = (() => {
