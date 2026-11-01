@@ -1,0 +1,14 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+httpx>=0.27
+pydantic>=2.7
+pydantic-settings>=2.3
+langgraph>=0.6
+langgraph-checkpoint-sqlite>=2.0
+aiosqlite>=0.20
+langchain-core>=0.3
+langchain-groq>=0.3
+langchain-google-genai>=2.1
+# optional 3rd provider (Hugging Face Inference):
+# langchain-huggingface>=0.1
+pytest>=8
