@@ -24,43 +24,61 @@ Runs seamlessly on **free-tier LLM providers** (Groq, Google Gemini, Hugging Fac
 ## 📸 Application Screenshots
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot01.png" alt="Wayfinder Main Interface" width="100%" />
+  <img src="frontend/public/screenshots/screenshot01.png" alt="Fig. 1 - Wayfinder Main Interface" width="100%" />
+  <br />
+  <em><b>Fig. 1</b> — Wayfinder Main Interface & Travel Prompt Input</em>
 </p>
 
 <details open>
-<summary><b>View Gallery (Screenshots 02 – 09)</b></summary>
+<summary><b>View Gallery (Figs. 2 – 9)</b></summary>
 <br />
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot02.png" alt="Itinerary Overview & Progress" width="100%" />
+  <img src="frontend/public/screenshots/screenshot02.png" alt="Fig. 2 - Itinerary Overview & Progress" width="100%" />
+  <br />
+  <em><b>Fig. 2</b> — Itinerary Overview & Multi-Stage Planning Progress</em>
 </p>
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot03.png" alt="Interactive Day Plan & Map" width="100%" />
+  <img src="frontend/public/screenshots/screenshot03.png" alt="Fig. 3 - Interactive Day Plan & Map" width="100%" />
+  <br />
+  <em><b>Fig. 3</b> — Interactive Day-by-Day Schedule & Leaflet Map View</em>
 </p>
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot04.png" alt="Budget & Selection Breakdown" width="100%" />
+  <img src="frontend/public/screenshots/screenshot04.png" alt="Fig. 4 - Budget & Selection Breakdown" width="100%" />
+  <br />
+  <em><b>Fig. 4</b> — Budget Breakdown & Expense Estimation</em>
 </p>
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot05.png" alt="Flight Search & Booking Options" width="100%" />
+  <img src="frontend/public/screenshots/screenshot05.png" alt="Fig. 5 - Flight Search & Booking Options" width="100%" />
+  <br />
+  <em><b>Fig. 5</b> — Live Flight Search & Alternative Flight Selection</em>
 </p>
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot06.png" alt="Stay & Hotel Options" width="100%" />
+  <img src="frontend/public/screenshots/screenshot06.png" alt="Fig. 6 - Stay & Hotel Options" width="100%" />
+  <br />
+  <em><b>Fig. 6</b> — Hotel & Accommodation Options with Interactive Selection</em>
 </p>
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot07.png" alt="Agent Activity & Timeline" width="100%" />
+  <img src="frontend/public/screenshots/screenshot07.png" alt="Fig. 7 - Agent Activity & Timeline" width="100%" />
+  <br />
+  <em><b>Fig. 7</b> — Multi-Agent Activity Timeline & Live SSE Event Stream</em>
 </p>
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot08.png" alt="Approval & Export Actions" width="100%" />
+  <img src="frontend/public/screenshots/screenshot08.png" alt="Fig. 8 - Approval & Export Actions" width="100%" />
+  <br />
+  <em><b>Fig. 8</b> — Human-in-the-Loop Approval & Export Actions (Email / Calendar)</em>
 </p>
 
 <p align="center">
-  <img src="frontend/public/screenshots/screenshot09.png" alt="Full Page Itinerary View" width="100%" />
+  <img src="frontend/public/screenshots/screenshot09.png" alt="Fig. 9 - Full Page Itinerary View" width="100%" />
+  <br />
+  <em><b>Fig. 9</b> — Full Comprehensive Itinerary Dossier View</em>
 </p>
 
 </details>
