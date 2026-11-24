@@ -13,11 +13,29 @@ export default function App() {
   const started = state.items.length > 0;
   const hasResults = state.trip.flights.length > 0 || state.trip.hotels.length > 0 || !!state.trip.plan;
 
+  const handleGetStarted = () => {
+    const el = document.getElementById('planner');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      const input = el.querySelector('input, textarea') as HTMLInputElement | HTMLTextAreaElement | null;
+      if (input) {
+        setTimeout(() => input.focus(), 300);
+      }
+    }
+  };
+
   return (
     <div className="app">
-      <TopBar theme={theme} onToggleTheme={toggle} request={state.trip.request} started={started} onNewTrip={() => { reset(); setView('chat'); }} />
+      <TopBar
+        theme={theme}
+        onToggleTheme={toggle}
+        request={state.trip.request}
+        started={started}
+        onNewTrip={() => { reset(); setView('chat'); }}
+        onGetStarted={handleGetStarted}
+      />
       {!started ? (
-        <Welcome onSubmit={submit} health={health} healthError={healthError} />
+        <Welcome onSubmit={submit} health={health} healthError={healthError} onGetStarted={handleGetStarted} />
       ) : (
         <>
           <main className="split" data-view={view}>
